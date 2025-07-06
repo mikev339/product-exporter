@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shopify Product Import Tool</title>
+    <title>Shopify Product Importer</title>
     <style>
         * {
             margin: 0;
@@ -44,35 +44,36 @@
             -webkit-text-fill-color: transparent;
         }
 
-        .section {
-            margin-bottom: 30px;
-            padding: 25px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .section-title {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 20px;
+        .tab-container {
             display: flex;
-            align-items: center;
-            gap: 10px;
+            margin-bottom: 30px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(102, 126, 234, 0.1);
         }
 
-        .section-number {
+        .tab {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            color: #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 0.9rem;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .input-group {
@@ -88,7 +89,7 @@
             font-size: 0.9rem;
         }
 
-        .input-field {
+        .url-input, .token-input, .store-input {
             width: 100%;
             padding: 16px 20px;
             border: 2px solid rgba(102, 126, 234, 0.2);
@@ -99,18 +100,18 @@
             color: #333;
         }
 
-        .input-field:focus {
+        .url-input:focus, .token-input:focus, .store-input:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
             transform: translateY(-2px);
         }
 
-        .input-field::placeholder {
+        .url-input::placeholder, .token-input::placeholder, .store-input::placeholder {
             color: #999;
         }
 
-        .button {
+        .action-btn {
             width: 100%;
             padding: 16px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -123,25 +124,17 @@
             transition: all 0.3s ease;
             text-transform: uppercase;
             letter-spacing: 1px;
-            margin-top: 10px;
+            margin-bottom: 10px;
         }
 
-        .button:hover:not(:disabled) {
+        .action-btn:hover:not(:disabled) {
             transform: translateY(-2px);
             box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
         }
 
-        .button:disabled {
+        .action-btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
-        }
-
-        .button.secondary {
-            background: linear-gradient(135deg, #10b981, #059669);
-        }
-
-        .button.secondary:hover:not(:disabled) {
-            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
         }
 
         .status {
@@ -217,299 +210,474 @@
             margin-bottom: 4px;
         }
 
-        .connection-status {
+        .warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            color: #92400e;
+            font-size: 0.9rem;
+        }
+
+        .product-preview {
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .product-preview.show {
+            display: block;
+        }
+
+        .product-preview h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .product-details {
+            display: grid;
+            gap: 10px;
+        }
+
+        .product-detail {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .product-detail:last-child {
+            border-bottom: none;
+        }
+
+        .product-detail strong {
+            color: #555;
+            min-width: 120px;
+        }
+
+        .product-detail span {
+            color: #333;
+            flex: 1;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .import-section {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .proxy-settings {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .proxy-settings h3 {
+            margin-bottom: 10px;
+            color: #1e40af;
+        }
+
+        .proxy-toggle {
             display: flex;
             align-items: center;
-            gap: 10px;
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .proxy-toggle label {
+            margin-left: 8px;
             font-weight: 500;
-            opacity: 0;
-            transform: translateY(10px);
-            transition: all 0.3s ease;
         }
 
-        .connection-status.show {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        .connection-status.connected {
-            background: rgba(34, 197, 94, 0.1);
-            color: #059669;
-            border: 1px solid rgba(34, 197, 94, 0.2);
-        }
-
-        .connection-status.error {
-            background: rgba(239, 68, 68, 0.1);
-            color: #dc2626;
-            border: 1px solid rgba(239, 68, 68, 0.2);
-        }
-
-        .status-icon {
-            width: 20px;
-            height: 20px;
-        }
-
-        .disabled-section {
-            opacity: 0.5;
-            pointer-events: none;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(102, 126, 234, 0.1);
-            border-radius: 4px;
-            overflow: hidden;
+        .proxy-fields {
             margin-top: 10px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            width: 0%;
-            transition: width 0.3s ease;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="title">Shopify Product Import Tool</h1>
+        <h1 class="title">Shopify Product Manager</h1>
         
-        <div class="section">
-            <div class="section-title">
-                <div class="section-number">1</div>
-                Store Connection
-            </div>
-            
+        <div class="tab-container">
+            <button class="tab active" onclick="switchTab('scrape')">Scrape & Export</button>
+            <button class="tab" onclick="switchTab('import')">Import to Store</button>
+        </div>
+
+        <!-- Scrape Tab -->
+        <div id="scrapeTab" class="tab-content active">
             <div class="info">
-                <h3>Setup Instructions:</h3>
+                <h3>Export product data to CSV:</h3>
                 <ul>
-                    <li>Create a custom app in your Shopify admin: Apps → App and sales channel settings → Develop apps</li>
-                    <li>Enable Admin API access with scopes: <strong>write_products</strong> and <strong>read_products</strong></li>
-                    <li>Generate an Admin API access token (starts with "shpat_")</li>
-                    <li>Enter your store domain and API token below</li>
+                    <li>Product title, description, and vendor</li>
+                    <li>All product images with proper variant assignments</li>
+                    <li>All variants with SKU, price (inventory tracking disabled)</li>
+                    <li>Product options (color, size, etc.)</li>
+                    <li>SEO and metadata information</li>
                 </ul>
             </div>
 
             <div class="input-group">
-                <label for="storeDomain" class="input-label">Store Domain</label>
-                <input 
-                    type="text" 
-                    id="storeDomain" 
-                    class="input-field" 
-                    placeholder="yourstore.myshopify.com"
-                    autocomplete="off"
-                >
-            </div>
-
-            <div class="input-group">
-                <label for="apiToken" class="input-label">Admin API Access Token</label>
-                <input 
-                    type="password" 
-                    id="apiToken" 
-                    class="input-field" 
-                    placeholder="shpat_..."
-                    autocomplete="off"
-                >
-            </div>
-
-            <button id="testConnectionBtn" class="button">
-                Test Connection
-            </button>
-
-            <div id="connectionStatus" class="connection-status"></div>
-        </div>
-
-        <div class="section" id="importSection">
-            <div class="section-title">
-                <div class="section-number">2</div>
-                Product Import
-            </div>
-
-            <div class="input-group">
-                <label for="productUrl" class="input-label">Source Product URL</label>
+                <label for="productUrl" class="input-label">Shopify Product URL</label>
                 <input 
                     type="url" 
                     id="productUrl" 
-                    class="input-field" 
-                    placeholder="https://sourcestore.shopify.com/products/product-name"
+                    class="url-input" 
+                    placeholder="https://source-store.shopify.com/products/product-name"
                     autocomplete="off"
                 >
             </div>
 
-            <button id="importBtn" class="button secondary">
-                Import Product to Store
+            <button id="scrapeBtn" class="action-btn">
+                Extract & Download CSV
+            </button>
+        </div>
+
+        <!-- Import Tab -->
+        <div id="importTab" class="tab-content">
+            <div class="warning">
+                <h3>⚠️ Important Note</h3>
+                <p>For security and CORS bypass, all API requests are routed through your proxy server.</p>
+            </div>
+
+            <div class="proxy-settings">
+                <h3>Proxy Server Configuration</h3>
+                <div class="input-group">
+                    <label for="proxyUrl" class="input-label">Proxy Server URL</label>
+                    <input 
+                        type="url" 
+                        id="proxyUrl" 
+                        class="url-input" 
+                        value="https://backend.ecomoptimizationblueprint.com/api/shopify-proxy"
+                        placeholder="https://your-proxy-server.com/api"
+                        autocomplete="off"
+                    >
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="sourceUrl" class="input-label">Source Product URL</label>
+                <input 
+                    type="url" 
+                    id="sourceUrl" 
+                    class="url-input" 
+                    placeholder="https://source-store.shopify.com/products/product-name"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="input-group">
+                <label for="targetStore" class="input-label">Your Store Domain</label>
+                <input 
+                    type="text" 
+                    id="targetStore" 
+                    class="store-input" 
+                    placeholder="your-store.myshopify.com"
+                    autocomplete="off"
+                >
+            </div>
+
+            <div class="input-group">
+                <label for="accessToken" class="input-label">Admin API Access Token</label>
+                <input 
+                    type="password" 
+                    id="accessToken" 
+                    class="token-input" 
+                    placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    autocomplete="off"
+                >
+            </div>
+
+            <button id="previewBtn" class="action-btn" style="background: linear-gradient(135deg, #059669, #10b981);">
+                Preview Product
             </button>
 
-            <div id="importStatus" class="status"></div>
-            <div id="progressBar" class="progress-bar" style="display: none;">
-                <div id="progressFill" class="progress-fill"></div>
+            <div id="productPreview" class="product-preview">
+                <h3>Product Preview</h3>
+                <div id="productDetails" class="product-details"></div>
+                
+                <div class="import-section">
+                    <button id="importBtn" class="action-btn">
+                        Import to Your Store
+                    </button>
+                </div>
             </div>
         </div>
+
+        <div id="status" class="status"></div>
     </div>
 
     <script>
-        class ShopifyImportTool {
+        let currentProductData = null;
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Hide status and product preview when switching tabs
+            hideStatus();
+            document.getElementById('productPreview').classList.remove('show');
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = type === 'loading' 
+                ? `<span class="spinner"></span>${message}` 
+                : message;
+            statusDiv.className = `status show ${type}`;
+        }
+
+        function hideStatus() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.className = 'status';
+        }
+
+        class ShopifyManager {
             constructor() {
-                this.storeDomain = document.getElementById('storeDomain');
-                this.apiToken = document.getElementById('apiToken');
-                this.testConnectionBtn = document.getElementById('testConnectionBtn');
-                this.connectionStatus = document.getElementById('connectionStatus');
-                
-                this.productUrl = document.getElementById('productUrl');
-                this.importBtn = document.getElementById('importBtn');
-                this.importStatus = document.getElementById('importStatus');
-                this.importSection = document.getElementById('importSection');
-                this.progressBar = document.getElementById('progressBar');
-                this.progressFill = document.getElementById('progressFill');
-                
-                this.isConnected = false;
-                this.storeInfo = null;
-                
                 this.initEventListeners();
-                this.updateImportSectionState();
             }
 
             initEventListeners() {
-                this.testConnectionBtn.addEventListener('click', () => this.testConnection());
-                this.importBtn.addEventListener('click', () => this.importProduct());
-                
-                // Auto-hide status messages when inputs change
-                [this.storeDomain, this.apiToken].forEach(input => {
-                    input.addEventListener('input', () => {
-                        this.hideConnectionStatus();
-                        this.isConnected = false;
-                        this.updateImportSectionState();
-                    });
+                // Scrape functionality
+                document.getElementById('scrapeBtn').addEventListener('click', () => this.scrapeProduct());
+                document.getElementById('productUrl').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') this.scrapeProduct();
                 });
-                
-                this.productUrl.addEventListener('input', () => {
-                    this.hideImportStatus();
+
+                // Import functionality
+                document.getElementById('previewBtn').addEventListener('click', () => this.previewProduct());
+                document.getElementById('importBtn').addEventListener('click', () => this.importProduct());
+
+                // Clear status on input
+                document.querySelectorAll('input').forEach(input => {
+                    input.addEventListener('input', () => hideStatus());
                 });
             }
 
-            async testConnection() {
-                const domain = this.storeDomain.value.trim();
-                const token = this.apiToken.value.trim();
-                
-                if (!domain || !token) {
-                    this.showConnectionStatus('Please enter both store domain and API token', 'error');
-                    return;
-                }
-
-                if (!this.isValidDomain(domain)) {
-                    this.showConnectionStatus('Please enter a valid Shopify domain (e.g., yourstore.myshopify.com)', 'error');
-                    return;
-                }
-
-                if (!token.startsWith('shpat_')) {
-                    this.showConnectionStatus('API token should start with "shpat_"', 'error');
-                    return;
-                }
-
-                this.setConnectionLoading(true);
-                this.showConnectionStatus('Testing connection...', 'loading');
-
-                try {
-                    const storeUrl = `https://${domain}/admin/api/2024-01/shop.json`;
-                    const response = await fetch(storeUrl, {
-                        method: 'GET',
-                        headers: {
-                            'X-Shopify-Access-Token': token,
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        if (response.status === 401) {
-                            throw new Error('Invalid API token or insufficient permissions');
-                        } else if (response.status === 404) {
-                            throw new Error('Store not found. Check your domain');
-                        } else {
-                            throw new Error(`Connection failed: ${response.status} ${response.statusText}`);
-                        }
-                    }
-
-                    const data = await response.json();
-                    this.storeInfo = data.shop;
-                    this.isConnected = true;
-                    
-                    this.showConnectionStatus(
-                        `✅ Connected to ${this.storeInfo.name} (${this.storeInfo.domain})`, 
-                        'connected'
-                    );
-                    
-                    this.updateImportSectionState();
-                    
-                } catch (error) {
-                    console.error('Connection test failed:', error);
-                    this.showConnectionStatus(`Connection failed: ${error.message}`, 'error');
-                    this.isConnected = false;
-                    this.updateImportSectionState();
-                } finally {
-                    this.setConnectionLoading(false);
-                }
-            }
-
-            async importProduct() {
-                if (!this.isConnected) {
-                    this.showImportStatus('Please test your store connection first', 'error');
-                    return;
-                }
-
-                const url = this.productUrl.value.trim();
+            async scrapeProduct() {
+                const url = document.getElementById('productUrl').value.trim();
                 
                 if (!url) {
-                    this.showImportStatus('Please enter a product URL to import', 'error');
+                    showStatus('Please enter a Shopify product URL', 'error');
                     return;
                 }
 
                 if (!this.isValidShopifyUrl(url)) {
-                    this.showImportStatus('Please enter a valid Shopify product URL', 'error');
+                    showStatus('Please enter a valid Shopify product URL', 'error');
                     return;
                 }
 
-                this.setImportLoading(true);
-                this.showProgress(0);
-                this.showImportStatus('Fetching product data...', 'loading');
+                this.setButtonLoading('scrapeBtn', true, 'Extracting...');
+                showStatus('Fetching product data...', 'loading');
 
                 try {
-                    // Step 1: Fetch product data
-                    this.updateProgress(20, 'Fetching product data...');
                     const productData = await this.fetchProductData(url);
+                    const csvData = this.convertToCSV(productData);
+                    this.downloadCSV(csvData, productData.title);
                     
-                    // Step 2: Prepare product for import
-                    this.updateProgress(40, 'Preparing product data...');
-                    const importData = this.prepareProductForImport(productData);
+                    showStatus('Product data exported successfully!', 'success');
+                } catch (error) {
+                    console.error('Scraping error:', error);
+                    showStatus(`Error: ${error.message}`, 'error');
+                } finally {
+                    this.setButtonLoading('scrapeBtn', false, 'Extract & Download CSV');
+                }
+            }
+
+            async previewProduct() {
+                const sourceUrl = document.getElementById('sourceUrl').value.trim();
+                const targetStore = document.getElementById('targetStore').value.trim();
+                const accessToken = document.getElementById('accessToken').value.trim();
+                const proxyUrl = document.getElementById('proxyUrl').value.trim();
+
+                if (!sourceUrl || !targetStore || !accessToken || !proxyUrl) {
+                    showStatus('Please fill in all fields', 'error');
+                    return;
+                }
+
+                if (!this.isValidShopifyUrl(sourceUrl)) {
+                    showStatus('Please enter a valid source product URL', 'error');
+                    return;
+                }
+
+                if (!this.isValidStoreDomain(targetStore)) {
+                    showStatus('Please enter a valid store domain (e.g., store.myshopify.com)', 'error');
+                    return;
+                }
+
+                this.setButtonLoading('previewBtn', true, 'Loading Preview...');
+                showStatus('Fetching product data...', 'loading');
+
+                try {
+                    // First fetch source product data
+                    const productData = await this.fetchProductData(sourceUrl);
+                    currentProductData = productData;
                     
-                    // Step 3: Upload images
-                    this.updateProgress(60, 'Uploading product images...');
-                    const imageMap = await this.uploadProductImages(productData.images || []);
-                    
-                    // Step 4: Update image references
-                    this.updateProgress(80, 'Updating image references...');
-                    this.updateImageReferences(importData, imageMap, productData.images || []);
-                    
-                    // Step 5: Create product
-                    this.updateProgress(90, 'Creating product in your store...');
-                    const createdProduct = await this.createProduct(importData);
-                    
-                    this.updateProgress(100, 'Import completed successfully!');
-                    this.showImportStatus(
-                        `✅ Product "${createdProduct.title}" imported successfully! Product ID: ${createdProduct.id}`, 
-                        'success'
-                    );
+                    this.displayProductPreview(productData);
+                    showStatus('Product preview loaded!', 'success');
                     
                 } catch (error) {
-                    console.error('Import error:', error);
-                    this.showImportStatus(`Import failed: ${error.message}`, 'error');
-                    this.hideProgress();
+                    console.error('Preview error:', error);
+                    showStatus(`Error: ${error.message}`, 'error');
                 } finally {
-                    this.setImportLoading(false);
+                    this.setButtonLoading('previewBtn', false, 'Preview Product');
                 }
+            }
+
+            async importProduct() {
+                if (!currentProductData) {
+                    showStatus('Please preview the product first', 'error');
+                    return;
+                }
+
+                const targetStore = document.getElementById('targetStore').value.trim();
+                const accessToken = document.getElementById('accessToken').value.trim();
+                const proxyUrl = document.getElementById('proxyUrl').value.trim();
+
+                if (!proxyUrl) {
+                    showStatus('Please enter a proxy URL', 'error');
+                    return;
+                }
+
+                this.setButtonLoading('importBtn', true, 'Importing...');
+                showStatus('Importing product to your store...', 'loading');
+
+                try {
+                    const importedProduct = await this.createProductInStore(
+                        currentProductData, 
+                        targetStore, 
+                        accessToken,
+                        proxyUrl
+                    );
+                    showStatus(`Product imported successfully! Product ID: ${importedProduct.id}`, 'success');
+                } catch (error) {
+                    console.error('Import error:', error);
+                    showStatus(`Import Failed: ${error.message}`, 'error');
+                } finally {
+                    this.setButtonLoading('importBtn', false, 'Import to Your Store');
+                }
+            }
+
+            async createProductInStore(sourceProduct, storeDomain, accessToken, proxyUrl) {
+                const apiUrl = `https://${storeDomain}/admin/api/2024-01/products.json`;
+                
+                // Prepare product data for Shopify API
+                const productPayload = {
+                    product: {
+                        title: sourceProduct.title,
+                        body_html: sourceProduct.body_html,
+                        vendor: sourceProduct.vendor,
+                        product_type: sourceProduct.product_type,
+                        tags: Array.isArray(sourceProduct.tags) ? sourceProduct.tags.join(', ') : sourceProduct.tags,
+                        status: 'draft', // Import as draft for safety
+                        options: sourceProduct.options?.map(option => ({
+                            name: option.name,
+                            values: option.values
+                        })) || [],
+                        variants: sourceProduct.variants?.map(variant => ({
+                            option1: variant.option1,
+                            option2: variant.option2,
+                            option3: variant.option3,
+                            price: variant.price,
+                            compare_at_price: variant.compare_at_price,
+                            sku: variant.sku,
+                            barcode: variant.barcode,
+                            inventory_management: null, // Don't track quantity
+                            inventory_policy: 'continue', // Allow sales when out of stock
+                            weight: variant.weight,
+                            weight_unit: variant.weight_unit,
+                            requires_shipping: variant.requires_shipping,
+                            taxable: variant.taxable
+                        })) || [],
+                        images: sourceProduct.images?.map(image => ({
+                            src: image.src,
+                            alt: image.alt
+                        })) || []
+                    }
+                };
+
+                const headers = {
+                    'Content-Type': 'application/json',
+                    'X-Target-Url': apiUrl,
+                    'X-Shopify-Access-Token': accessToken
+                };
+
+                try {
+                    const response = await fetch(proxyUrl, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify(productPayload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.errors ? JSON.stringify(errorData.errors) : `API Error: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    return result.product;
+                } catch (error) {
+                    console.error('Proxy request failed:', error);
+                    throw new Error(`Proxy request failed: ${error.message}`);
+                }
+            }
+
+            displayProductPreview(product) {
+                const previewDiv = document.getElementById('productPreview');
+                const detailsDiv = document.getElementById('productDetails');
+                
+                const details = [
+                    { label: 'Title', value: product.title },
+                    { label: 'Vendor', value: product.vendor },
+                    { label: 'Product Type', value: product.product_type },
+                    { label: 'Variants', value: product.variants?.length || 0 },
+                    { label: 'Images', value: product.images?.length || 0 },
+                    { label: 'Tags', value: Array.isArray(product.tags) ? product.tags.join(', ') : product.tags },
+                    { label: 'Status', value: product.status || 'active' }
+                ];
+
+                detailsDiv.innerHTML = details.map(detail => `
+                    <div class="product-detail">
+                        <strong>${detail.label}:</strong>
+                        <span>${detail.value || 'N/A'}</span>
+                    </div>
+                `).join('');
+
+                previewDiv.classList.add('show');
+            }
+
+            isValidShopifyUrl(url) {
+                try {
+                    const urlObj = new URL(url);
+                    return urlObj.pathname.includes('/products/');
+                } catch {
+                    return false;
+                }
+            }
+
+            isValidStoreDomain(domain) {
+                const domainPattern = /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.(myshopify\.com|shopify\.com)$/;
+                return domainPattern.test(domain) || domain.includes('.com');
             }
 
             async fetchProductData(url) {
@@ -523,217 +691,160 @@
                         return data.product;
                     }
                 } catch (error) {
-                    // Try CORS proxy
+                    // Continue to proxy method
                 }
 
                 const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(jsonUrl)}`;
-                const response = await fetch(proxyUrl);
                 
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch product data: ${response.status}`);
+                try {
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const proxyData = await response.json();
+                    const productData = JSON.parse(proxyData.contents);
+                    
+                    if (!productData.product) {
+                        throw new Error('Product not found or invalid URL');
+                    }
+                    
+                    return productData.product;
+                } catch (error) {
+                    throw new Error('Unable to fetch product data. The store may have CORS restrictions.');
                 }
-                
-                const proxyData = await response.json();
-                const productData = JSON.parse(proxyData.contents);
-                
-                if (!productData.product) {
-                    throw new Error('Product not found or invalid URL');
-                }
-                
-                return productData.product;
             }
 
-            prepareProductForImport(product) {
-                // Remove Shopify-specific fields that shouldn't be imported
-                const cleanProduct = {
-                    title: product.title,
-                    body_html: product.body_html,
-                    vendor: product.vendor,
-                    product_type: product.product_type,
-                    tags: Array.isArray(product.tags) ? product.tags.join(', ') : product.tags,
-                    published: product.published_at ? true : false,
-                    options: product.options || [],
-                    variants: [],
-                    images: []
+            convertToCSV(product) {
+                const csvRows = [];
+                
+                const getTags = (tags) => {
+                    if (!tags) return '';
+                    if (Array.isArray(tags)) return tags.join(', ');
+                    if (typeof tags === 'string') return tags;
+                    return '';
                 };
 
-                // Clean variants - remove Shopify-specific IDs and fields
-                if (product.variants && product.variants.length > 0) {
-                    cleanProduct.variants = product.variants.map(variant => ({
-                        option1: variant.option1,
-                        option2: variant.option2,
-                        option3: variant.option3,
-                        sku: variant.sku,
-                        price: variant.price,
-                        compare_at_price: variant.compare_at_price,
-                        inventory_quantity: variant.inventory_quantity || 0,
-                        inventory_management: variant.inventory_management,
-                        inventory_policy: variant.inventory_policy || 'deny',
-                        fulfillment_service: variant.fulfillment_service || 'manual',
-                        requires_shipping: variant.requires_shipping !== false,
-                        taxable: variant.taxable !== false,
-                        barcode: variant.barcode,
-                        grams: variant.grams,
-                        weight: variant.weight,
-                        weight_unit: variant.weight_unit || 'g'
-                    }));
-                }
-
-                return cleanProduct;
-            }
-
-            async uploadProductImages(images) {
-                const imageMap = {};
-                
-                if (!images || images.length === 0) {
-                    return imageMap;
-                }
-
-                for (let i = 0; i < images.length; i++) {
-                    const image = images[i];
-                    if (!image.src) continue;
-
+                const safeGet = (obj, path, defaultValue = '') => {
                     try {
-                        // For Shopify API, we can reference images by URL
-                        // The API will download and store them automatically
-                        imageMap[image.id] = {
-                            src: image.src,
-                            alt: image.alt,
-                            position: i + 1
-                        };
-                    } catch (error) {
-                        console.warn(`Failed to process image ${image.src}:`, error);
+                        return path.split('.').reduce((o, p) => o?.[p], obj) || defaultValue;
+                    } catch {
+                        return defaultValue;
                     }
-                }
+                };
 
-                return imageMap;
-            }
+                // Shopify CSV headers
+                csvRows.push([
+                    'Handle', 'Title', 'Body (HTML)', 'Vendor', 'Product Category', 'Type', 'Tags', 'Published',
+                    'Option1 Name', 'Option1 Value', 'Option2 Name', 'Option2 Value', 'Option3 Name', 'Option3 Value',
+                    'Variant SKU', 'Variant Grams', 'Variant Inventory Tracker', 'Variant Inventory Qty',
+                    'Variant Inventory Policy', 'Variant Fulfillment Service', 'Variant Price', 'Variant Compare At Price',
+                    'Variant Requires Shipping', 'Variant Taxable', 'Variant Barcode', 'Image Src', 'Image Position',
+                    'Image Alt Text', 'Gift Card', 'SEO Title', 'SEO Description', 'Google Shopping / Google Product Category',
+                    'Google Shopping / Gender', 'Google Shopping / Age Group', 'Google Shopping / MPN',
+                    'Google Shopping / Condition', 'Google Shopping / Custom Product', 'Variant Image', 'Variant Weight Unit',
+                    'Variant Tax Code', 'Cost per item', 'Included / United States', 'Price / United States',
+                    'Compare At Price / United States', 'Included / International', 'Price / International',
+                    'Compare At Price / International', 'Status'
+                ].join(','));
 
-            updateImageReferences(productData, imageMap, originalImages) {
-                // Add images to product data
-                productData.images = Object.values(imageMap);
+                // Add product data rows
+                const variants = product.variants || [];
+                if (variants.length > 0) {
+                    variants.forEach((variant, index) => {
+                        const isFirstVariant = index === 0;
+                        csvRows.push([
+                            product.handle || '',
+                            isFirstVariant ? this.escapeCsv(product.title || '') : '',
+                            isFirstVariant ? this.escapeCsv(product.body_html || '') : '',
+                            isFirstVariant ? this.escapeCsv(product.vendor || '') : '',
+                            '',
+                            isFirstVariant ? this.escapeCsv(product.product_type || '') : '',
+                            isFirstVariant ? this.escapeCsv(getTags(product.tags)) : '',
+                            isFirstVariant ? (product.published_at ? 'TRUE' : 'FALSE') : '',
+                            isFirstVariant ? safeGet(product, 'options.0.name') : '',
+                            this.escapeCsv(variant.option1 || ''),
+                            isFirstVariant ? safeGet(product, 'options.1.name') : '',
+                            this.escapeCsv(variant.option2 || ''),
+                            isFirstVariant ? safeGet(product, 'options.2.name') : '',
+                            this.escapeCsv(variant.option3 || ''),
+                            this.escapeCsv(variant.sku || ''),
+                            variant.grams || variant.weight || '',
+                            '', // No inventory management
+                            '', // No inventory quantity
+                            'continue', // Continue selling when out of stock
+                            variant.fulfillment_service || 'manual',
+                            variant.price || '',
+                            variant.compare_at_price || '',
+                            variant.requires_shipping !== false ? 'TRUE' : 'FALSE',
+                            variant.taxable !== false ? 'TRUE' : 'FALSE',
+                            this.escapeCsv(variant.barcode || ''),
+                            '', '', '', 'FALSE', '', '', '', '', '', '', 'new', 'TRUE', '', 'g', '', '', 'TRUE', '', '', 'TRUE', '', '',
+                            variant.weight_unit || 'kg',
+                            '', // Variant tax code
+                            '', // Cost per item
+                            'TRUE', // Included / United States
+                            variant.price || '',
+                            variant.compare_at_price || '',
+                            'TRUE', // Included / International
+                            variant.price || '',
+                            variant.compare_at_price || '',
+                            product.status || 'active'
+                        ].join(','));
+                    });
 
-                // Map variant images
-                if (productData.variants && originalImages) {
-                    productData.variants.forEach((variant, index) => {
-                        const originalVariant = originalImages.find(img => img.variant_ids && img.variant_ids.includes(index));
-                        if (originalVariant && imageMap[originalVariant.id]) {
-                            variant.image_src = imageMap[originalVariant.id].src;
-                        }
+                    // Add images
+                    const images = product.images || [];
+                    images.forEach((image, index) => {
+                        const variantIds = image.variant_ids || [];
+                        const variantImage = variantIds.length > 0 ? variantIds[0] : '';
+                        
+                        csvRows.push([
+                            product.handle || '',
+                            '', '', '', '', '', '', '',
+                            '', '', '', '', '', '',
+                            '', '', '', '', '', '', '', '', '', '', '',
+                            this.escapeCsv(image.src || ''),
+                            index + 1,
+                            this.escapeCsv(image.alt || ''),
+                            'FALSE', '', '', '', '', '', '', '', '', '', '',
+                            variantImage, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''
+                        ].join(','));
                     });
                 }
+
+                return csvRows.join('\n');
             }
 
-            async createProduct(productData) {
-                const domain = this.storeDomain.value.trim();
-                const token = this.apiToken.value.trim();
-                
-                const url = `https://${domain}/admin/api/2024-01/products.json`;
-                
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'X-Shopify-Access-Token': token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ product: productData })
-                });
-
-                if (!response.ok) {
-                    const errorData = await response.json().catch(() => ({}));
-                    const errorMessage = errorData.errors ? 
-                        Object.values(errorData.errors).flat().join(', ') : 
-                        `HTTP ${response.status}: ${response.statusText}`;
-                    throw new Error(errorMessage);
-                }
-
-                const data = await response.json();
-                return data.product;
+            escapeCsv(str) {
+                if (!str) return '';
+                return `"${String(str).replace(/"/g, '""')}"`;
             }
 
-            updateProgress(percentage, message) {
-                this.progressFill.style.width = `${percentage}%`;
-                if (message) {
-                    this.showImportStatus(message, 'loading');
-                }
+            downloadCSV(csvData, productTitle) {
+                const blob = new Blob([csvData], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${productTitle || 'shopify-product'}-${new Date().toISOString().slice(0,10)}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
             }
 
-            showProgress(percentage) {
-                this.progressBar.style.display = 'block';
-                this.updateProgress(percentage);
-            }
-
-            hideProgress() {
-                this.progressBar.style.display = 'none';
-            }
-
-            isValidDomain(domain) {
-                const domainRegex = /^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]*\.myshopify\.com$/;
-                return domainRegex.test(domain) || domain.includes('.myshopify.com');
-            }
-
-            isValidShopifyUrl(url) {
-                try {
-                    const urlObj = new URL(url);
-                    return urlObj.pathname.includes('/products/');
-                } catch {
-                    return false;
-                }
-            }
-
-            updateImportSectionState() {
-                if (this.isConnected) {
-                    this.importSection.classList.remove('disabled-section');
-                } else {
-                    this.importSection.classList.add('disabled-section');
-                }
-            }
-
-            setConnectionLoading(loading) {
-                this.testConnectionBtn.disabled = loading;
-                if (loading) {
-                    this.testConnectionBtn.innerHTML = '<span class="spinner"></span>Testing...';
-                } else {
-                    this.testConnectionBtn.innerHTML = 'Test Connection';
-                }
-            }
-
-            setImportLoading(loading) {
-                this.importBtn.disabled = loading;
-                if (loading) {
-                    this.importBtn.innerHTML = '<span class="spinner"></span>Importing...';
-                } else {
-                    this.importBtn.innerHTML = 'Import Product to Store';
-                }
-            }
-
-            showConnectionStatus(message, type) {
-                this.connectionStatus.innerHTML = `
-                    <div class="status-icon">
-                        ${type === 'connected' ? '✅' : type === 'error' ? '❌' : '⏳'}
-                    </div>
-                    <span>${message}</span>
-                `;
-                this.connectionStatus.className = `connection-status ${type} show`;
-            }
-
-            hideConnectionStatus() {
-                this.connectionStatus.classList.remove('show');
-            }
-
-            showImportStatus(message, type) {
-                this.importStatus.textContent = message;
-                this.importStatus.className = `status ${type} show`;
-            }
-
-            hideImportStatus() {
-                this.importStatus.classList.remove('show');
+            setButtonLoading(buttonId, isLoading, text) {
+                const button = document.getElementById(buttonId);
+                button.disabled = isLoading;
+                button.innerHTML = isLoading 
+                    ? `<span class="spinner"></span>${text}`
+                    : text;
             }
         }
 
-        // Initialize the tool when the page loads
+        // Initialize the Shopify Manager when DOM is loaded
         document.addEventListener('DOMContentLoaded', () => {
-            new ShopifyImportTool();
+            new ShopifyManager();
         });
     </script>
 </body>
