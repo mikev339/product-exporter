@@ -292,9 +292,6 @@
                     <li>Generate an Admin API access token (starts with "shpat_")</li>
                     <li>Enter your store domain and API token below</li>
                 </ul>
-                <div style="margin-top: 15px; padding: 12px; background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 8px; color: #b45309;">
-                    <strong>⚠️ CORS Limitation:</strong> This tool may need to run from a server environment or use browser extensions to bypass CORS restrictions for API calls.
-                </div>
             </div>
 
             <div class="input-group">
@@ -418,33 +415,13 @@
 
                 try {
                     const storeUrl = `https://${domain}/admin/api/2024-01/shop.json`;
-                    
-                    // Try direct connection first
-                    let response;
-                    try {
-                        response = await fetch(storeUrl, {
-                            method: 'GET',
-                            headers: {
-                                'X-Shopify-Access-Token': token,
-                                'Content-Type': 'application/json'
-                            }
-                        });
-                    } catch (corsError) {
-                        // If CORS fails, use proxy
-                        console.log('Direct connection failed, using proxy...');
-                        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(storeUrl)}`;
-                        response = await fetch(proxyUrl, {
-                            method: 'GET',
-                            headers: {
-                                'X-Requested-With': 'XMLHttpRequest'
-                            }
-                        });
-                        
-                        // For proxy requests, we need to add the auth header differently
-                        if (!response.ok) {
-                            throw new Error('CORS proxy connection failed. Please check your credentials.');
+                    const response = await fetch(storeUrl, {
+                        method: 'GET',
+                        headers: {
+                            'X-Shopify-Access-Token': token,
+                            'Content-Type': 'application/json'
                         }
-                    }
+                    });
 
                     if (!response.ok) {
                         if (response.status === 401) {
@@ -457,11 +434,11 @@
                     }
 
                     const data = await response.json();
-                    this.storeInfo = data.shop || { name: domain.split('.')[0], domain: domain };
+                    this.storeInfo = data.shop;
                     this.isConnected = true;
                     
                     this.showConnectionStatus(
-                        `✅ Connected to ${this.storeInfo.name} (${domain})`, 
+                        `✅ Connected to ${this.storeInfo.name} (${this.storeInfo.domain})`, 
                         'connected'
                     );
                     
@@ -469,14 +446,7 @@
                     
                 } catch (error) {
                     console.error('Connection test failed:', error);
-                    
-                    // Provide more specific error messages
-                    let errorMessage = error.message;
-                    if (error.message.includes('Failed to fetch')) {
-                        errorMessage = 'Connection blocked by CORS policy. This tool needs to run from a server or use a browser extension to bypass CORS restrictions.';
-                    }
-                    
-                    this.showConnectionStatus(`Connection failed: ${errorMessage}`, 'error');
+                    this.showConnectionStatus(`Connection failed: ${error.message}`, 'error');
                     this.isConnected = false;
                     this.updateImportSectionState();
                 } finally {
@@ -660,21 +630,14 @@
                 
                 const url = `https://${domain}/admin/api/2024-01/products.json`;
                 
-                let response;
-                try {
-                    // Try direct API call first
-                    response = await fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'X-Shopify-Access-Token': token,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ product: productData })
-                    });
-                } catch (corsError) {
-                    // If CORS fails, we need to use a different approach
-                    throw new Error('Direct API access blocked by CORS. This tool needs to run from a server environment or use a CORS proxy service that supports POST requests with authentication headers.');
-                }
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-Shopify-Access-Token': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ product: productData })
+                });
 
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
